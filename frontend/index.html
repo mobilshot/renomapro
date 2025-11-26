@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RenomaPro — Fachowcy premium</title>
+<link rel="icon" href="/assets/favicon.ico">
+<style>
+:root{--gold:#b8860b;--dark:#0f172a;--muted:#6b7280;--bg:#f6f8fb}
+body{font-family:Inter, Arial, sans-serif;background:var(--bg);margin:0;color:var(--dark)}
+.header{background:linear-gradient(90deg,var(--dark),#24303b);color:#fff;padding:18px 12px}
+.header .inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:48px}
+.container{max-width:1100px;margin:20px auto;padding:0 12px}
+.card{background:#fff;padding:16px;border-radius:10px;margin-bottom:14px;box-shadow:0 8px 24px rgba(15,23,42,0.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.btn{background:var(--gold);color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.form input,.form textarea{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #e6e6e6}
+.header .actions .btn{padding:8px 14px}
+.badge{display:inline-block;padding:6px 10px;background:#f3f4f6;border-radius:999px;font-size:13px;color:var(--dark);margin-right:6px}
+.footer{background:#0f172a;color:#fff;padding:18px;text-align:center;margin-top:18px}
+.admin-panel{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="inner">
+    <div class="brand"><img src="/assets/logo.png" alt="logo"><div><strong>RenomaPro</strong><div class="small">Fachowcy premium — Mińsk Maz.</div></div></div>
+    <div class="actions">
+      <button class="btn" id="btnFind">Znajdź fachowca</button>
+      <button class="btn" id="btnForPros">Dla fachowców</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Polecani fachowcy</h2>
+    <div id="list" class="grid"></div>
+  </div>
+
+  <div class="card">
+    <h3>Zgłoś projekt</h3>
+    <div class="form">
+      <input id="name" placeholder="Twoje imię">
+      <input id="phone" placeholder="Telefon">
+      <textarea id="desc" placeholder="Opis projektu"></textarea>
+      <button class="btn" id="send">Wyślij</button>
+      <p id="msg" class="small"></p>
+    </div>
+  </div>
+
+  <div class="card" id="pro" style="display:none">
+    <h3>Panel fachowca / Rejestracja</h3>
+    <div class="form">
+      <input id="reg_name" placeholder="Nazwa firmy / Imię">
+      <input id="reg_email" placeholder="Email">
+      <input id="reg_pass" placeholder="Hasło (min 6 znaków)" type="password">
+      <input id="reg_cat" placeholder="Kategoria (np. Elektryk)">
+      <input id="reg_phone" placeholder="Telefon">
+      <input id="reg_city" placeholder="Miasto">
+      <textarea id="reg_about" placeholder="Krótki opis"></textarea>
+      <button class="btn" id="btnRegister">Zarejestruj jako fachowiec (bezpłatnie)</button>
+      <div style="margin-top:10px"><em class="small">Po rejestracji możesz wykupić abonament premium.</em></div>
+      <hr>
+      <h4>Wykup abonament premium</h4>
+      <p class="small">Abonament pozwala na wyższe pozycjonowanie i dostęp do leadów premium.</p>
+      <button class="btn" id="subscribeBtn">Wykup abonament (Stripe)</button>
+      <p id="submsg" class="small"></p>
+    </div>
+  </div>
+
+  <div class="card" id="admin" style="display:none">
+    <h3>Panel administracyjny</h3>
+    <div class="admin-panel">
+      <div><strong>Leady</strong><div id="leads"></div></div>
+      <div><strong>Fachowcy</strong><div id="adminFach"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">© RenomaPro — Mińsk Mazowiecki</div>
+
+<script>
+const API = (location.hostname==='localhost') ? 'http://localhost:3000' : window.location.origin;
+let token = localStorage.getItem('rp_token');
+async function load(){
+  const res = await fetch(API + '/api/fachowcy');
+  const data = await res.json();
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  data.forEach(d=>{
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = '<strong>' + (d.name||'') + '</strong><div class="small">' + (d.category||'') + ' • ' + (d.city||'') + '</div><div style="margin-top:8px">Tel: ' + (d.phone||'—') + '</div><div style="margin-top:8px"><button class="btn" onclick="call(\'' + (d.phone||'') + '\')">Zadzwoń</button></div>';
+    list.appendChild(el);
+  });
+}
+
+function call(t){ alert('Dzwoń: ' + t); }
+
+document.getElementById('send').addEventListener('click', async ()=>{
+  const name=document.getElementById('name').value, phone=document.getElementById('phone').value, desc=document.getElementById('desc').value;
+  const res = await fetch(API + '/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,desc})});
+  if(res.ok){ document.getElementById('msg').innerText='Dziękujemy! Zgłoszenie wysłane.'; document.getElementById('name').value=''; document.getElementById('phone').value=''; document.getElementById('desc').value=''; }
+  else { document.getElementById('msg').innerText='Błąd. Spróbuj później.'; }
+});
+
+// registration for pros (simple)
+document.getElementById('btnRegister').addEventListener('click', async ()=>{
+  const name=document.getElementById('reg_name').value, email=document.getElementById('reg_email').value, password=document.getElementById('reg_pass').value;
+  const cat=document.getElementById('reg_cat').value, phone=document.getElementById('reg_phone').value, city=document.getElementById('reg_city').value, about=document.getElementById('reg_about').value;
+  const res = await fetch(API + '/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password,role:'pro'})});
+  const j = await res.json();
+  if(j.token){ localStorage.setItem('rp_token', j.token); token=j.token; alert('Zarejestrowano! Teraz zaloguj się w panelu (użyj przycisku Znajdź fachowca -> Logowanie).'); }
+  else alert('Błąd rejestracji');
+});
+
+// subscribe button - opens Stripe Checkout via backend
+document.getElementById('subscribeBtn').addEventListener('click', async ()=>{
+  if(!token){ alert('Musisz się zalogować/rejestrować najpierw.'); return; }
+  const res = await fetch(API + '/api/create-checkout-session', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({})});
+  const j = await res.json();
+  if(j.url){ window.location.href = j.url; } else { document.getElementById('submsg').innerText='Błąd inicjacji płatności. Sprawdź konfigurację.'; }
+});
+
+// simple login prompt for admin (for convenience)
+async function showAdmin(){
+  const email = prompt('Email');
+  const pass = prompt('Hasło');
+  const res = await fetch(API + '/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, password:pass})});
+  const j = await res.json();
+  if(j.token){ localStorage.setItem('rp_token', j.token); token=j.token; if(j.role==='admin') document.getElementById('admin').style.display='block'; alert('Zalogowano!'); loadAdmin(); } else alert('Błąd logowania');
+}
+
+async function loadAdmin(){
+  const r1 = await fetch(API + '/api/admin/leads', {headers:{'Authorization':'Bearer '+token}});
+  if(r1.ok){ const leads = await r1.json(); document.getElementById('leads').innerText = JSON.stringify(leads,null,2); }
+  const r2 = await fetch(API + '/api/admin/fachowcy', {headers:{'Authorization':'Bearer '+token}});
+  if(r2.ok){ const fs = await r2.json(); document.getElementById('adminFach').innerText = JSON.stringify(fs,null,2); }
+}
+
+document.getElementById('btnForPros').addEventListener('click', ()=>{ document.getElementById('pro').style.display='block'; window.scrollTo(0,document.body.scrollHeight); });
+document.getElementById('btnFind').addEventListener('click', ()=>{ const doAdmin = confirm('Czy chcesz zalogować się jako admin? (Tak = login)'); if(doAdmin) showAdmin(); else window.scrollTo(0,0); });
+
+// show admin automatically on localhost for convenience
+if(location.hostname==='localhost' || location.hostname==='127.0.0.1') document.getElementById('admin').style.display='block';
+
+load();
+</script>
+
+<footer class="footer" style="text-align:center;padding:18px;background:#0f172a;color:#fff;margin-top:18px;">
+  © RenomaPro — Mińsk Mazowiecki |
+  <a style="color:#fff" href="/regulamin.html">Regulamin</a> |
+  <a style="color:#fff" href="/polityka-prywatnosci.html">Polityka prywatności</a> |
+  <a style="color:#fff" href="/cookies.html">Polityka cookies</a>
+ | <a style='color:#fff' href='/owner-dashboard.html'>Panel właściciela</a></footer>
+
+<!-- Cookie banner -->
+<div id="cookieBanner" style="position:fixed;bottom:12px;left:12px;right:12px;background:#0f172a;color:#fff;padding:14px;border-radius:8px;z-index:9999;display:flex;align-items:center;justify-content:center;gap:12px;">
+  <div>Używamy plików cookies, żeby poprawić działanie serwisu.</div>
+  <button onclick="acceptCookies()" style="background:#b8860b;border:none;padding:8px 12px;border-radius:6px;color:#fff;cursor:pointer;">Akceptuję</button>
+  <a href="/cookies.html" style="color:#fff;text-decoration:underline">Więcej</a>
+</div>
+<script>
+function acceptCookies(){
+  document.cookie = "cookies_accepted=true; path=/; max-age=31536000";
+  var b = document.getElementById('cookieBanner'); if(b) b.style.display='none';
+}
+(function(){ if(document.cookie && document.cookie.indexOf('cookies_accepted')>-1){ var b = document.getElementById('cookieBanner'); if(b) b.style.display='none'; } })();
+</script>
+<!-- End cookie banner -->
+<div style="text-align:center;margin-top:20px;"><a href="review-add.html?id=1">Dodaj opinię (test)</a> | <a href="reviews.html?id=1">Zobacz opinie (test)</a></div></body>
+</html>

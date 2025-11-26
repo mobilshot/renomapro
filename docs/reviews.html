@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Opinie</title>
+<style>
+body{font-family:Arial;padding:20px;background:#f5f5f5;}
+.card{background:white;padding:15px;border-radius:10px;margin-bottom:10px;}
+.rating{color:#f0b800;font-size:20px;}
+</style>
+</head>
+<body>
+<h2>Opinie o fachowcu</h2>
+<div id="list"></div>
+
+<script>
+const API = (location.hostname==='localhost')?'http://localhost:3000':location.origin;
+let fachowiec_id = new URLSearchParams(window.location.search).get("id");
+
+async function load(){
+    const r = await fetch(API+'/api/opinions/'+fachowiec_id);
+    const arr = await r.json();
+    let html='';
+    arr.forEach(o=>{
+        html += `<div class="card"><div class="rating">${"★".repeat(o.rating)}</div>
+                <div>${o.comment||""}</div>
+                <small>${o.created_at||""}</small></div>`;
+    });
+    document.getElementById('list').innerHTML = html;
+}
+load();
+</script>
+</body></html>

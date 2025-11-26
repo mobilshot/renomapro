@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - JWT_SECRET=change_me
+      # STRIPE_SECRET (sk_test_...) - set your Stripe test secret to enable checkout
+      # STRIPE_PRICE_ID (price_...) - set the subscription price id created in Stripe Dashboard
+      # WEBHOOK_SECRET (optional) - for webhook signature verification
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
